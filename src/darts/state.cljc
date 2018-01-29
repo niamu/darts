@@ -2,4 +2,5 @@
 
 (defonce app-state
   (atom {:throws []
-         :score 501}))
+         :score 501
+         :guess ""}))

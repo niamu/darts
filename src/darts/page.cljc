@@ -82,29 +82,75 @@
                :cy width
                :r (/ width 2)}]]))
 
+(defn end-of-set?
+  [state]
+  (= 3 (-> (partition-all 3 (:throws state))
+           last count)))
+
 (defn scoreboard
   [state]
   [:div
-   [:ul (map (fn [set]
-               [:li (apply str (interpose ", " set))])
-             (partition-all 3 (:throws state)))]
-   [:span (:score state)]])
+   [:p.total (- 501
+                (-> (map darts/id->dart
+                         (->> (partition-all 3 (:throws state))
+                              drop-last
+                              (apply concat)))
+                    darts/sum-darts))]
+   (when (not-empty (:throws state))
+     [:ul (map (fn [set]
+                 [:li (apply str (interpose ", " set))])
+               (-> (partition-all 3 (:throws state))
+                   last vector))])])
+
+(defn throw-dart
+  []
+  (do (swap! state/app-state update-in [:throws]
+             #(conj % (-> (darts/throw-dart)
+                          darts/dart->id)))
+      (swap! state/app-state update-in [:score]
+             #(- 501
+                 (-> (map darts/id->dart
+                          (get @state/app-state
+                               :throws))
+                     darts/sum-darts)))
+      (swap! state/app-state assoc-in [:guess] "")))
+
+(defn tally-guess
+  [state]
+  [:form
+   (merge {:name "tally-guess"}
+          #?(:cljs {:onSubmit
+                    (fn [e]
+                      (.preventDefault e)
+                      (when (= (-> (map darts/id->dart
+                                        (->> (partition-all 3 (:throws state))
+                                             (filter (fn [set]
+                                                       (= 3 (count set))))
+                                             last))
+                                   darts/sum-darts)
+                               (js/parseInt (:guess state)))
+                        (throw-dart)))}))
+   [:input {:type "text"
+            :name "guess"
+            :placeholder "Total for set..."
+            :value (:guess state)
+            :onInput #?(:clj nil
+                        :cljs (fn [e]
+                                (swap! state/app-state assoc-in [:guess]
+                                       (->> (re-seq #"\d+"
+                                                    (.. e -target
+                                                        -value))
+                                            (apply str)))))}]
+   [:input {:type "submit"
+            :value "Check"}]])
 
 (rum/defc board < rum/reactive
   []
   [:div
    (scoreboard (rum/react state/app-state))
-   [:button {:onClick (fn [_]
-                        #?(:cljs (do (swap! state/app-state update-in [:throws]
-                                            #(conj % (-> (darts/throw-dart)
-                                                         darts/dart->id)))
-                                     (swap! state/app-state update-in [:score]
-                                            #(- 501
-                                                (-> (map darts/id->dart
-                                                         (get @state/app-state
-                                                              :throws))
-                                                    darts/sum-darts))))))}
-    "Throw Darts"]
+   (if (end-of-set? (rum/react state/app-state))
+     (tally-guess (rum/react state/app-state))
+     [:button {:onClick (fn [_] #?(:cljs (throw-dart)))} "Throw Darts"])
    (let [width 560
          darts (->> (:throws @state/app-state)
                     (partition-all 3)

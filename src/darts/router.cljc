@@ -36,5 +36,4 @@
      [url]
      (:domkm.silk/name (silk/arrive routes url))))
 
-#?(:cljs (do (.log js/console "test")
-             (route->response :dashboard)))
+#?(:cljs (route->response :dashboard))
