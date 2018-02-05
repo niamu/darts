@@ -1,5 +1,6 @@
 (ns darts.router
   (:require [darts.page :as page]
+            [darts.style :refer [style]]
             [domkm.silk :as silk]
             [rum.core :as rum]
             #?@(:clj
@@ -7,6 +8,7 @@
 
 (def routes
   (silk/routes {:dashboard  [[]]
+                :cache      [["cache.manifest"]]
                 :stylesheet [["css" "screen.css"]]}))
 
 (defn serve
@@ -19,7 +21,30 @@
 
 (defmulti response identity)
 
+(defmethod response :cache
+  [route]
+  (fn [request]
+    {:status 200
+     :headers {"Content-Type" "text/cache-manifest"}
+     :body "CACHE MANIFEST
+css/screen.css
+js/darts.js
+
+NETWORK:
+*"}))
+
+(defmethod response :stylesheet
+  [route]
+  (fn [request]
+    {:status 200
+     :headers {"Content-Type" "text/css"}
+     :body style}))
+
 (defmethod response :default
+  [route]
+  (serve {:body #'page/board}))
+
+(defmethod response :dashboard
   [route]
   (serve {:body #'page/board}))
 

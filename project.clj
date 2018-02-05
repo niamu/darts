@@ -32,9 +32,7 @@
                        {:id "main"
                         :source-paths ["src"]
                         :compiler {:main darts.router
-                                   :asset-path "/js/out"
                                    :output-to "resources/public/js/darts.js"
-                                   :output-dir "resources/public/js/out"
                                    :optimizations :advanced
                                    :parallel-build true
                                    :source-map-timestamp true}}]})
