@@ -4,7 +4,8 @@
   {:throws []
    :checkout-throws []
    :score 501
-   :guess ""})
+   :tally-guess ""
+   :score-guess ""})
 
 (defonce app-state
   (atom (merge {} initial-state)))

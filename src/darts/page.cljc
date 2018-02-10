@@ -140,44 +140,78 @@
                         (get @state/app-state
                              :throws))
                    darts/sum-darts)))
-    (swap! state/app-state assoc-in [:guess] "")))
+    (swap! state/app-state assoc-in [:tally-guess] "")
+    (swap! state/app-state assoc-in [:score-guess] "")))
 
 (defn tally-guess
   [state]
-  [:form
-   (merge {:name "tally-guess"}
-          #?(:cljs {:onSubmit
-                    (fn [e]
-                      (.preventDefault e)
-                      (if (= (-> (map darts/id->dart
-                                      (->> (partition-all 3 (:throws state))
-                                           (filter (fn [set]
-                                                     (= 3 (count set))))
-                                           last))
-                                 darts/sum-darts)
-                             (js/parseInt (:guess state)))
-                        (throw-dart!)
-                        (do (swap! state/app-state assoc-in [:guess] "")
-                            (js/alert "Sorry, please try again."))))}))
-   [:input {:type "text"
-            :name "guess"
-            :pattern "[0-9]*"
-            :placeholder "Total for set..."
-            :value (:guess state)
-            :autoFocus true
-            :onFocus #?(:clj nil
-                        :cljs (fn [e]
-                                (aset (.querySelector js/document
-                                                      ".flex .stretch")
-                                      "scrollTop" 0)))
-            :onInput #?(:clj nil
-                        :cljs (fn [e]
-                                (swap! state/app-state assoc-in [:guess]
-                                       (->> (re-seq #"\d+"
-                                                    (.. e -target
-                                                        -value))
-                                            (apply str)))))}]
-   [:button.inline {:type "submit"} "Check"]])
+  (let [tally-correct? #?(:clj false
+                          :cljs (= (-> (map darts/id->dart
+                                            (->> (:throws state)
+                                                 (partition-all 3)
+                                                 (filter (fn [set]
+                                                           (= 3 (count set))))
+                                                 last))
+                                       darts/sum-darts)
+                                   (js/parseInt (:tally-guess state))))]
+    [:form
+     (merge {:name "tally-guess"}
+            #?(:cljs {:onSubmit
+                      (fn [e]
+                        (.preventDefault e)
+                        (if (= (:score state)
+                               #_(-> (map darts/id->dart
+                                          (->> (partition-all 3 (:throws state))
+                                               (filter (fn [set]
+                                                         (= 3 (count set))))
+                                               last))
+                                     darts/sum-darts)
+                               (js/parseInt (:score-guess state)))
+                          (throw-dart!)
+                          (do (swap! state/app-state assoc-in [:score-guess] "")
+                              (js/alert "Sorry, please try again."))))}))
+     [:span (str (+ (:score state)
+                    (->> (last (partition-all 3 (:throws state)))
+                         (map darts/id->dart)
+                         darts/sum-darts))
+                 "-")]
+     [:input {:type "text"
+              :name "tally-guess"
+              :pattern "[0-9]*"
+              :value (:tally-guess state)
+              :disabled #?(:clj true
+                           :cljs tally-correct?)
+              :autoFocus (not tally-correct?)
+              :onFocus #?(:clj nil
+                          :cljs (fn [e]
+                                  (aset (.querySelector js/document
+                                                        ".flex .stretch")
+                                        "scrollTop" 0)))
+              :onInput #?(:clj nil
+                          :cljs (fn [e]
+                                  (swap! state/app-state assoc-in [:tally-guess]
+                                         (->> (re-seq #"\d+"
+                                                      (.. e -target
+                                                          -value))
+                                              (apply str)))))}]
+     [:span "="]
+     [:input {:type "text"
+              :id "score-guess"
+              :name "score-guess"
+              :pattern "[0-9]*"
+              :disabled #?(:clj true
+                           :cljs (not tally-correct?))
+              :autoFocus tally-correct?
+              :value (:score-guess state)
+              :onInput #?(:clj nil
+                          :cljs (fn [e]
+                                  (swap! state/app-state assoc-in [:score-guess]
+                                         (->> (re-seq #"\d+"
+                                                      (.. e -target
+                                                          -value))
+                                              (apply str)))))}]
+     [:button.inline {:type "submit"
+                      :disabled (not tally-correct?)} "Check"]]))
 
 (rum/defc board < rum/reactive
   []
@@ -208,7 +242,6 @@
       [:button {:onClick (fn [_] #?(:cljs (reset-game!)))} "New Game"]
       (end-of-set? (rum/react state/app-state))
       (tally-guess (rum/react state/app-state))
-      #_[:button {:onClick (fn [_] #?(:cljs (throw-dart!)))} "Throw Darts"]
       :else
       [:button {:onClick (fn [_] #?(:cljs (throw-dart!)))} "Throw Darts"])]])
 

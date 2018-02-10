@@ -69,10 +69,14 @@
           {:display :flex
            :flex-direction :row
            :width "100%"}]
-         [:input
+         ["input[name=score-guess]:disabled"
+          {:border [["1px" :solid :red]]}]
+         [:input :span
           {:display :inline-block
+           :max-width "4em"
            :text-align :center
            :border :none
+           :border-radius "4px"
            :padding "6px"
            :font-size "16px"}]
          [:button
@@ -89,4 +93,6 @@
            :border-radius "4px"
            :background "#4E5447"
            :color "#E7E9D4"
-           :cursor :pointer}]]]))
+           :cursor :pointer}]
+         ["button:disabled"
+          {:cursor :auto}]]]))
